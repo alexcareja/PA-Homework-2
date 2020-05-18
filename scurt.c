@@ -9,12 +9,13 @@ typedef struct edge {
 	int u;
 	int v;
 	int index;
+	int status;
 } edge;  // tip de date muchie
 
-typedef struct solution {
-	edge w;
-	int status;
-} solution;
+// typedef struct solution {
+// 	edge *w;
+// 	int status;
+// } solution;
 
 typedef struct VertexListNode {
 	int nod;
@@ -31,7 +32,6 @@ typedef struct forest {
 	VertexList *v;
 	int size;
 	edge last_edge;
-	int opt;
 } forest;  // tip de date padure (de adiacenta pentru un nod)
 
 typedef struct EdgeListNode {
@@ -126,6 +126,62 @@ void destroyEdgeList(EdgeList *l) {  // distruge lista, elibereaza memoria
 	free(l);
 }
 
+typedef struct ListNode {
+	int elem;
+	edge *w;
+	int cost;
+	struct ListNode *next;
+} ListNode;  // tip de date nod de lista
+
+typedef struct List {
+	ListNode *start;
+	ListNode *end;
+} List;  // tip de date lista
+
+List *initList() {  // initializeaza o lista goala
+	List *l = (List *) malloc(sizeof(List));
+	l->start = NULL;
+	l->end = NULL;
+	return l;
+}
+
+void insertInList(List *l, int elem, edge *w, int cost) {
+	// insereaza un nod in lista
+	ListNode *node = (ListNode *) malloc(sizeof(ListNode));
+	node->elem = elem;
+	node->w = w;
+	node->cost = cost;
+	node->next = NULL;
+	if (l->start == NULL) {  // lista e goala
+		// insereaza la inceputul listei
+		l->start = node;
+		l->end = node;
+		return;
+	}
+	// insereaza la finalul listei
+	l->end->next = node;
+	l->end = node;
+}
+
+void deleteFirst(List *l) {  // sterge primul nod din lista
+	if (l->start == NULL) {
+		return;
+	}
+	ListNode *aux = l->start;
+	l->start = aux->next;
+	if (l->start == NULL) {  // daca am eliminat ultimul element din lista
+		l->end = NULL;
+	}
+	free(aux);
+}
+
+void destroyList(List *l) {  // distruge lista, elibereaza memoria
+	while (l->start != NULL) {
+		deleteFirst(l);
+	}
+	free(l);
+}
+
 forest *initPadure(int s) {
 	forest *p = (forest *) malloc(sizeof(forest));
 	memset(&(p->e), 0, (MAX_VERTEXES + 1) * sizeof(int));
@@ -133,14 +189,15 @@ forest *initPadure(int s) {
 	insertInVertexList(p->v, s);
 	p->e[s] = 1;
 	p->size = 1;
-	p->opt = 0;
 	return p;
 }
 
 int intersectie(forest *p1, forest *p2, int c, edge w, int **max_cost);
 void reuniune(forest **pdr, edge w, int c, int **max_cost);
-void interclasare(solution *v, int i, int m, int j);
-void sortare_pi(solution *v, int i, int j);
+void interclasare(edge **v, int i, int m, int j);
+void sortare_pi(edge **v, int i, int j);
+void DFS_nebun(List **la, int src, int dst, int c);
+int explorare_nebuna(List **la, int *v, int s, int dst, int c);
 
 int main() {
 	int c, i, n, m, max_vertex = 0, r;
@@ -168,23 +225,25 @@ int main() {
 		insertInEdgeList(e[c], w);
 	}
 	fclose(fin);
-	for (i = 0; i <= MAX_COST; i++) {
-		if (e[i] != NULL) {
-			EdgeListNode *aux = e[i]->start;
-			while (aux != NULL) {
-				printf("%d %d %d\t index = %d\n", aux->w.u, aux->w.v, i, aux->w.index);
-				aux = aux->next;
-			}
-		}
-	}
+	// for (i = 0; i <= MAX_COST; i++) {
+	// 	if (e[i] != NULL) {
+	// 		EdgeListNode *aux = e[i]->start;
+	// 		while (aux != NULL) {
+	// 			printf("%d %d %d\t index = %d\n", aux->w.u, aux->w.v, i, aux->w.index);
+	// 			aux = aux->next;
+	// 		}
+	// 	}
+	// }
 
+	List **la = (List **) malloc((max_vertex + 1) * sizeof(List *));
 	int **max_cost = (int **) malloc((max_vertex + 1) * sizeof(int *));
 	forest **pdr = (forest **) calloc(max_vertex + 1 , sizeof(forest *));
 	for (i = 1; i <= max_vertex; i++) {
+		la[i] = initList();
 		max_cost[i] = (int *) calloc(max_vertex + 1, sizeof(int));
 		pdr[i] = initPadure(i);
 	}
-	solution *sol = (solution *) calloc(3 * max_vertex, sizeof(solution));
+	edge **sol = (edge **) calloc(3 * max_vertex, sizeof(edge *));
 	int sc = 0, ss = 0, nec = 0, opt = 0;
 	EdgeListNode *aux;
 	for (c = 1; c <= MAX_COST; c++) {
@@ -203,39 +262,36 @@ int main() {
 			}
 			if (r == 0) {
 				reuniune(pdr, w, c, max_cost);
+				insertInList(la[w.u], w.v, &aux->w, c);
+				insertInList(la[w.v], w.u, &aux->w, c);
 				// adauga muchia in solutie
-				sol[sc].w = w;
-				// sol[sc].status = 1;  // deocamdata o consider necesara
+				sol[sc] = &aux->w;
+				sol[sc]->status = 1;  // deocamdata o consider muchie necesara
 				sc++;
-			} else {
-				// marcheaza padurea ca fiind ciclica
-				pdr[w.u]->opt = 1;
+			} else {  // muchia este optionala => caut celelalte muchii opt.
 				// adauga muchia in solutie
-				sol[sc].w = w;
-				// sol[sc].status = 2;  // muchie optionala
+				sol[sc] = &aux->w;
+				sol[sc]->status = 2;  // muchie optionala
 				sc++;
+				// cauta celelalte muchii opt. de cost egal din graful ciclic
+				DFS_nebun(la, w.u, w.v, c);
 			}
 			aux = aux->next;
 		}
-		// nodurile adaugate la cost c adaugate in vector/lista
-		for (i = ss; i < sc; i++) {
-			if (pdr[sol[i].w.u]->opt) {
-				sol[i].status = 2;  // muchie optionala
-				opt++;
-			} else {
-				sol[i].status = 1;  // muchie necesara
-				nec++;
-			}
-			// printf("%d-%d status = %d\n", sol[i].w.u, sol[i].w.v, sol[i].status);
+	}
+	for (int i = 0; i < ss; i++) {
+		if (sol[i]->status == 1) {
+			nec++;
+		} else {
+			opt++;
 		}
 	}
-
 	sortare_pi(sol, 0, ss -1);
 
 	FILE *fout = fopen("scurt.out", "w");
 	fprintf(fout, "%d %d\n", nec, opt);
 	for (i = 0; i < ss; i++) {
-		fprintf(fout, "%d %d\n", sol[i].w.u, sol[i].w.v);
+		fprintf(fout, "%d %d\n", sol[i]->u, sol[i]->v);
 	}
 	fclose(fout);
 	for (i = 1; i <= MAX_COST; i++) {
@@ -244,6 +300,36 @@ int main() {
 		}
 	}
 	free(e);
+	return 0;
+}
+
+void DFS_nebun(List **la, int src, int dst, int c) {
+	int *v = (int *) calloc(MAX_VERTEXES + 1, sizeof(int));
+	explorare_nebuna(la, v, src, dst, c);
+	free(v);
+}
+
+int explorare_nebuna(List **la, int *v, int s, int dst, int c) {
+	if (s == dst) {
+		return 1;
+	}
+	int r, succesor;
+	v[s] = 1;
+	ListNode *aux = la[s]->start;
+	while (aux != NULL) {
+		succesor = aux->elem;
+		if (v[succesor] == 0) {
+			r = explorare_nebuna(la, v, succesor, dst, c);
+			if (r) {
+				if (aux->cost == c) {
+					// muchie optionala
+					aux->w->status = 2;
+				}
+				return 1;
+			}
+		}
+		aux = aux->next;
+	}
 	return 0;
 }
 
@@ -292,21 +378,21 @@ void reuniune(forest **pdr, edge w, int c, int **max_cost) {
 	free(p2);
 }
 
-void interclasare(solution *v, int i, int m, int j) {
+void interclasare(edge **v, int i, int m, int j) {
 	int iinit = i;
-	solution *u = (solution *) calloc(j - i + 1, sizeof(solution));
+	edge **u = (edge **) calloc(j - i + 1, sizeof(edge *));
 	int l = 0;
 	int k = m + 1;
 	while (i <= m && k <= j) {
-		if (v[i].status == v[k].status) {
-			if (v[i].w.index < v[k].w.index) {
+		if (v[i]->status == v[k]->status) {
+			if (v[i]->index < v[k]->index) {
 				u[l++] = v[i++];
 			} else {
 				u[l++] = v[k++];
 			}
 			continue;
 		}
-		if (v[i].status < v[k].status) {
+		if (v[i]->status < v[k]->status) {
 			u[l++] = v[i++];
 		} else {
 			u[l++] = v[k++];
@@ -325,7 +411,7 @@ void interclasare(solution *v, int i, int m, int j) {
 	free(u);
 }
 
-void sortare_pi(solution *v, int i, int j) {
+void sortare_pi(edge **v, int i, int j) {
 	if (i < j) {
 		int m = (i + j) / 2;
 		sortare_pi(v, i, m);
