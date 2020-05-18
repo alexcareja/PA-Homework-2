@@ -224,12 +224,11 @@ int main() {
 	// 	if (e[i] != NULL) {
 	// 		EdgeListNode *aux = e[i]->start;
 	// 		while (aux != NULL) {
-	// 			printf("%d %d %d\t index = %d\n", aux->w.u, aux->w.v, i, aux->w.index);
+	// 			printf("%d %d %d\n", aux->w.u, aux->w.v, i);
 	// 			aux = aux->next;
 	// 		}
 	// 	}
 	// }
-
 	List **la = (List **) malloc((max_vertex + 1) * sizeof(List *));
 	int **max_cost = (int **) malloc((max_vertex + 1) * sizeof(int *));
 	forest **pdr = (forest **) calloc(max_vertex + 1 , sizeof(forest *));
@@ -351,6 +350,8 @@ void reuniune(forest **pdr, edge w, int c, int **max_cost) {
 	}
 	// p1 este padurea de dimensiune mai mare
 	// copiez nodurile din p2 in p1
+	int p1_size = p1->size;
+	int i;
 	VertexListNode *auxv = p2->v->start;
 	VertexListNode *auxv2;
 	while (auxv != NULL) {
@@ -360,11 +361,9 @@ void reuniune(forest **pdr, edge w, int c, int **max_cost) {
 		pdr[auxv->nod] = p1;
 		p1->size += 1;
 		auxv2 = p1->v->start;
-		while (auxv2 != NULL) {
-			// printf("%d %d \n", auxv->nod, auxv2->nod);
+		for (i = 0; i < p1_size && auxv2 != NULL; i++, auxv2 = auxv2->next) {
 			max_cost[auxv->nod][auxv2->nod] = c;
 			max_cost[auxv2->nod][auxv->nod] = c;
-			auxv2 = auxv2->next;
 		}
 		auxv = auxv->next;
 	}
