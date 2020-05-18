@@ -12,11 +12,6 @@ typedef struct edge {
 	int status;
 } edge;  // tip de date muchie
 
-// typedef struct solution {
-// 	edge *w;
-// 	int status;
-// } solution;
-
 typedef struct VertexListNode {
 	int nod;
 	struct VertexListNode *next;
@@ -244,17 +239,15 @@ int main() {
 		pdr[i] = initPadure(i);
 	}
 	edge **sol = (edge **) calloc(3 * max_vertex, sizeof(edge *));
-	int sc = 0, ss = 0, nec = 0, opt = 0;
+	int sc = 0, nec = 0, opt = 0;
 	EdgeListNode *aux;
 	for (c = 1; c <= MAX_COST; c++) {
 		if (e[c] == NULL) {
 			continue;
 		}
-		ss = sc;
 		aux = e[c]->start;
 		while (aux != NULL) {
 			w = aux->w;
-			// printf("muchie %d-%d c = %d\n", w.u, w.v, c);
 			r = intersectie(pdr[w.u], pdr[w.v], c, w, max_cost);
 			if (r == -1) {
 				aux = aux->next;
@@ -275,22 +268,24 @@ int main() {
 				sc++;
 				// cauta celelalte muchii opt. de cost egal din graful ciclic
 				DFS_nebun(la, w.u, w.v, c);
+				insertInList(la[w.u], w.v, &aux->w, c);
+				insertInList(la[w.v], w.u, &aux->w, c);
 			}
 			aux = aux->next;
 		}
 	}
-	for (int i = 0; i < ss; i++) {
+	for (int i = 0; i < sc; i++) {
 		if (sol[i]->status == 1) {
 			nec++;
 		} else {
 			opt++;
 		}
 	}
-	sortare_pi(sol, 0, ss -1);
+	sortare_pi(sol, 0, sc -1);
 
 	FILE *fout = fopen("scurt.out", "w");
 	fprintf(fout, "%d %d\n", nec, opt);
-	for (i = 0; i < ss; i++) {
+	for (i = 0; i < sc; i++) {
 		fprintf(fout, "%d %d\n", sol[i]->u, sol[i]->v);
 	}
 	fclose(fout);
@@ -340,7 +335,7 @@ int intersectie(forest *p1, forest *p2, int c, edge w, int **max_cost) {
 	if (p1 == p2 && c > max_cost[w.u][w.v]) {
 		return -1;  // muchia nu poate fi folosita
 	}
-	// p1 == p2 && maxcost == c
+	// p1 == p2 && maxcost[w.u][w.v] == c
 	// avem un ciclu care are cel putin 2 muchii de cost c
 	return 1;
 }
