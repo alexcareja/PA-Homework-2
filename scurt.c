@@ -26,7 +26,6 @@ typedef struct forest {
 	int e[MAX_VERTEXES + 1];
 	VertexList *v;
 	int size;
-	edge last_edge;
 } forest;  // tip de date padure (de adiacenta pentru un nod)
 
 typedef struct EdgeListNode {
@@ -191,8 +190,8 @@ int intersectie(forest *p1, forest *p2, int c, edge w, int **max_cost);
 void reuniune(forest **pdr, edge w, int c, int **max_cost);
 void interclasare(edge **v, int i, int m, int j);
 void sortare_pi(edge **v, int i, int j);
-void DFS_nebun(List **la, int src, int dst, int c);
-int explorare_nebuna(List **la, int *v, int s, int dst, int c);
+void DFS(List **la, int src, int dst, int c);
+int explorare(List **la, int *v, int s, int dst, int c);
 
 int main() {
 	int c, i, n, m, max_vertex = 0, r;
@@ -220,39 +219,40 @@ int main() {
 		insertInEdgeList(e[c], w);
 	}
 	fclose(fin);
-	// for (i = 0; i <= MAX_COST; i++) {
-	// 	if (e[i] != NULL) {
-	// 		EdgeListNode *aux = e[i]->start;
-	// 		while (aux != NULL) {
-	// 			printf("%d %d %d\n", aux->w.u, aux->w.v, i);
-	// 			aux = aux->next;
-	// 		}
-	// 	}
-	// }
+
 	List **la = (List **) malloc((max_vertex + 1) * sizeof(List *));
+	// ^ lista de adiacenta pentru fiecare nod (adiacente din solutie)
 	int **max_cost = (int **) malloc((max_vertex + 1) * sizeof(int *));
+	// ^ matrice in care retin costul maxim al unei muchii pe drumul i->j
 	forest **pdr = (forest **) calloc(max_vertex + 1 , sizeof(forest *));
+	// ^ vector de paduri (cate una pentru fiecare nod, initial)
 	for (i = 1; i <= max_vertex; i++) {
+		// initializari
 		la[i] = initList();
 		max_cost[i] = (int *) calloc(max_vertex + 1, sizeof(int));
 		pdr[i] = initPadure(i);
 	}
 	edge **sol = (edge **) calloc(3 * max_vertex, sizeof(edge *));
+	// ^ vectorul de muchii ce fac parte din solutie
 	int sc = 0, nec = 0, opt = 0;
 	EdgeListNode *aux;
 	for (c = 1; c <= MAX_COST; c++) {
+		// pentru fiecare cost c = 1:1000
 		if (e[c] == NULL) {
 			continue;
 		}
 		aux = e[c]->start;
-		while (aux != NULL) {
+		while (aux != NULL) {  // pentru fiecare muchie de cost c
 			w = aux->w;
+			// verifica daca muchia creeaza un ciclu
 			r = intersectie(pdr[w.u], pdr[w.v], c, w, max_cost);
 			if (r == -1) {
+				// muchia creeaza un ciclu si nu este interschimbabila
 				aux = aux->next;
 				continue;
 			}
 			if (r == 0) {
+				// muchia nu creeaza niciun ciclu
 				reuniune(pdr, w, c, max_cost);
 				insertInList(la[w.u], w.v, &aux->w, c);
 				insertInList(la[w.v], w.u, &aux->w, c);
@@ -266,13 +266,19 @@ int main() {
 				sol[sc]->status = 2;  // muchie optionala
 				sc++;
 				// cauta celelalte muchii opt. de cost egal din graful ciclic
-				DFS_nebun(la, w.u, w.v, c);
+				DFS(la, w.u, w.v, c);
 				insertInList(la[w.u], w.v, &aux->w, c);
 				insertInList(la[w.v], w.u, &aux->w, c);
 			}
 			aux = aux->next;
 		}
+		if (pdr[1]->size == n) {
+			// daca am acoperit toate cele n noduri, iesi din bucla
+			break;
+		}
 	}
+
+	// numara muchiile obligatorii si optionale
 	for (int i = 0; i < sc; i++) {
 		if (sol[i]->status == 1) {
 			nec++;
@@ -280,30 +286,41 @@ int main() {
 			opt++;
 		}
 	}
+
+	// sorteaza solutia dupa ordinea lor din input
 	sortare_pi(sol, 0, sc -1);
 
+	// scrie rezultat
 	FILE *fout = fopen("scurt.out", "w");
 	fprintf(fout, "%d %d\n", nec, opt);
 	for (i = 0; i < sc; i++) {
 		fprintf(fout, "%d %d\n", sol[i]->u, sol[i]->v);
 	}
 	fclose(fout);
+
+	// elibereaza memorie
 	for (i = 1; i <= MAX_COST; i++) {
 		if (e[c] == NULL) {
 			destroyEdgeList(e[c]);
 		}
 	}
+	for (i = 1; i <= max_vertex; i++) {
+		destroyList(la[i]);
+		free(max_cost[i]);
+	}
+	free(la);
+	free(max_cost);
 	free(e);
 	return 0;
 }
 
-void DFS_nebun(List **la, int src, int dst, int c) {
+void DFS(List **la, int src, int dst, int c) {
 	int *v = (int *) calloc(MAX_VERTEXES + 1, sizeof(int));
-	explorare_nebuna(la, v, src, dst, c);
+	explorare(la, v, src, dst, c);
 	free(v);
 }
 
-int explorare_nebuna(List **la, int *v, int s, int dst, int c) {
+int explorare(List **la, int *v, int s, int dst, int c) {
 	if (s == dst) {
 		return 1;
 	}
@@ -313,7 +330,7 @@ int explorare_nebuna(List **la, int *v, int s, int dst, int c) {
 	while (aux != NULL) {
 		succesor = aux->elem;
 		if (v[succesor] == 0) {
-			r = explorare_nebuna(la, v, succesor, dst, c);
+			r = explorare(la, v, succesor, dst, c);
 			if (r) {
 				if (aux->cost == c) {
 					// muchie optionala
@@ -367,12 +384,12 @@ void reuniune(forest **pdr, edge w, int c, int **max_cost) {
 		}
 		auxv = auxv->next;
 	}
-	p1->last_edge = w;
 	// eliberez memoria alocata pentru p2
 	free(p2);
 }
 
 void interclasare(edge **v, int i, int m, int j) {
+	// interclaseaza 2 vectori de muchii crescator dupa status si index
 	int iinit = i;
 	edge **u = (edge **) calloc(j - i + 1, sizeof(edge *));
 	int l = 0;
@@ -405,7 +422,7 @@ void interclasare(edge **v, int i, int m, int j) {
 	free(u);
 }
 
-void sortare_pi(edge **v, int i, int j) {
+void sortare_pi(edge **v, int i, int j) {  // merge sort pentru muchii
 	if (i < j) {
 		int m = (i + j) / 2;
 		sortare_pi(v, i, m);

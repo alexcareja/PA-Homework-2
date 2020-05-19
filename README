@@ -1,0 +1,53 @@
+################################## Tema 2 PA ##################################
+
+Student: Careja Alexandru-Cristian
+Grupa: 324 CD
+
+Problema 1. Holograme
+
+<>  Pornind de la ideea ca pentru un graf cu N noduri, numarul minim de
+holograme necesare, in cel mai rau caz este maxim N, am definit numarul minim de
+holograme necesare in functie de componentele conexe ale grafului (graful il
+consider ca fiind perechile primite la input, adica daca x vrea sa vorbeaca cu y
+atunci am muchie x->y):
+	-> Daca o componenta conexa care contine K noduri este un Graf Orientat
+Aciclic, atunci numarul minim de holograme necesare comunicarii, asa cum este
+cerut, este egal cu K - 1
+	-> Daca o componenta conexa care contine K noduri este un Graf Orientat
+Ciclic, atunci numarul minim de hologram necesare comunicarii este fix K.
+
+<>  Modul de rezolvare al problemei: citesc datele de input si imi declar doua
+liste de adiacenta, una in care pastrez graful orientat, si una in care memorez
+graful neorientat (x->y implica y->x). Initializez o variabila ans cu numarul
+total de noduri din graf, care este solutia, in cazul in care nu se poate face
+nicio reducere tranzitiva.
+	Parcurgand cu DFS graful neorientat, obtin intr-o lista o componenta conexa
+a grafului, una cate una, pana cand am vizitat toate nodurile din graf. Pentru o
+componenta conexa, dupa descoperirea ei, aplicand un DFS pe graful orientat, de
+data aceasta, verific daca exista macar un ciclu in componenta descoperita. In
+DFS un nod devine gri atunci cand incep explorarea sa, si negru cand o termin.
+Daca mergand din vecin in vecin dau de un nod gri, atunci inseamna ca am
+descoperit un ciclu, si ies din executia DFS.
+	Pentru o componenta conexa, daca aceasta este un Graf Orientat Aciclic,
+atunci decrementez ans (variabila raspuns) deoarece, pot gasi un drum pentru
+cele K noduri din graf de lungime K - 1.
+	Dupa parcurgerea tuturor componentelor conexe si actualizarea variabilei ans
+scriu in fisier rezultatul si eliberez memoria alocata.
+
+Problema 2. Scurt
+
+<>  Pornind de la algoritmul lui Kruskal de construire a unui AMA, luand muchii
+in odinea crescatoare a costului, incerc sa le adaug in solutie. Fiecare nod
+face parte dintr-o padure. Daca o muchie noua imi uneste doua paduri, atunci o
+introduc in solutie ca muchie obligatorie. Daca o muchie noua imi genereaza un
+ciclu (cele doua noduri pe care le uneste fac parte din aceeasi padure), atunci
+verific daca in acel ciclu mai gasesc o muchie de acelasi cost. Daca mai gasesc
+atunci muchia noua si toate celelalte muchii de cost egal fac parte din solutie
+si sunt muchii substituibile.
+	Dupa ce acopar toate nodurile cu o singura padure, ma opresc din cautare,
+calculez numarul de muchii obligatorii si numarul de muchii substituibile si
+sortez muchiile din solutie dupa indexul de la citirea lor. Scriu solutia in
+fisier si eliberez memorie.
+
+Problema 3. Umbre
+

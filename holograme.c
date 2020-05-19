@@ -4,12 +4,12 @@
 typedef struct ListNode {
 	int elem;
 	struct ListNode *next;
-}ListNode;  // tip de date nod de lista
+} ListNode;  // tip de date nod de lista
 
 typedef struct List {
 	ListNode *start;
 	ListNode *end;
-}List;  // tip de date lista
+} List;  // tip de date lista
 
 List *initList() {  // initializeaza o lista goala
 	List *l = (List *) malloc(sizeof(List));
